@@ -1027,10 +1027,39 @@ impl<'gc> Loader<'gc> {
                             &body,
                         )),
                         DataFormat::Variables => {
-                            tracing::warn!(
-                                "Support for URLLoaderDataFormat.VARIABLES not yet implemented"
-                            );
-                            Avm2Value::Undefined
+                            let received: Vec<String> = String::from_utf8(body)
+                                .unwrap()
+                                .split("&")
+                                .map(String::from)
+                                .collect();
+
+                            let mut variables = activation
+                                .avm2()
+                                .classes()
+                                .urlvariables
+                                .construct(activation, &[])
+                                .unwrap();
+
+                            for pairs in received {
+                                let keyvalue: Vec<String> =
+                                    pairs.split("=").map(String::from).collect();
+
+                                variables
+                                    .set_public_property(
+                                        AvmString::new_utf8(
+                                            activation.context.gc_context,
+                                            keyvalue.first().unwrap(),
+                                        ),
+                                        Avm2Value::String(AvmString::new_utf8(
+                                            activation.context.gc_context,
+                                            keyvalue.last().unwrap(),
+                                        )),
+                                        activation,
+                                    )
+                                    .unwrap();
+                            }
+
+                            variables.into()
                         }
                     };
 
